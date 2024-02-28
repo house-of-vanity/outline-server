@@ -22,30 +22,16 @@
 # - ROOT_DIR
 
 export DOCKER_CONTENT_TRUST="${DOCKER_CONTENT_TRUST:-1}"
-# Enable Docker BuildKit (https://docs.docker.com/develop/develop-images/build_enhancements)
 export DOCKER_BUILDKIT=1
+readonly SB_VERSION=${SB_VERSION:-latest}
+readonly SB_IMAGE=${SB_IMAGE:-ultradesu/shadowbox}
 
-# Docker image build architecture. Supported architectures: x86_64, arm64
-export ARCH=${ARCH:-x86_64}
+docker buildx create --name mybuilder --use
 
-# Newer node images have no valid content trust data.
-# Pin the image node:16.18.0-alpine3.16 by hash.
-# See image at https://hub.docker.com/_/node/tags?page=1&name=18.18.0-alpine3.18
-readonly NODE_IMAGE=$(
-    if [[ "${ARCH}" == "x86_64" ]]; then
-        echo "node@sha256:a0b787b0d53feacfa6d606fb555e0dbfebab30573277f1fe25148b05b66fa097" 
-    elif [[ "${ARCH}" == "arm64" ]]; then
-        echo "node@sha256:b4b7a1dd149c65ee6025956ac065a843b4409a62068bd2b0cbafbb30ca2fab3b" 
-    else
-        echo "Unsupported architecture"
-        exit 1
-    fi
-)
-
-docker build --force-rm \
-    --build-arg ARCH="${ARCH}" \
-    --build-arg NODE_IMAGE="${NODE_IMAGE}" \
-    --build-arg VERSION="${SB_VERSION:-dev}" \
+docker buildx build --platform linux/amd64,linux/arm64 \
+    --build-arg VERSION="${SB_VERSION}" \
+    --build-arg NODE_IMAGE="node:18.16-alpine3.16" \
     -f src/shadowbox/docker/Dockerfile \
-    -t "${SB_IMAGE:-localhost/outline/shadowbox}" \
-    "${ROOT_DIR}"
+    -t "${SB_IMAGE}" \
+    --push \
+    .

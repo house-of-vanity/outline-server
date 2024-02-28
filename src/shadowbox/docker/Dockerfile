@@ -33,10 +33,18 @@ COPY src src/
 COPY tsconfig.json ./
 COPY third_party third_party
 
-ARG ARCH
+ARG TARGETPLATFORM
 ARG VERSION
 
-RUN ARCH=${ARCH} ROOT_DIR=/ SB_VERSION=${VERSION} npm run action shadowbox/server/build
+RUN case "${TARGETPLATFORM}" in \
+      "linux/amd64") ARCH='x86_64' ;; \
+      "linux/arm64") ARCH='arm64' ;; \
+      *) echo "Unsupported platform: ${TARGETPLATFORM}" && exit 1 ;; \
+    esac && \
+    export ARCH=${ARCH} && \
+    export ROOT_DIR=/ && \
+    export SB_VERSION=${VERSION} && \
+    npm run action shadowbox/server/build
 
 # shadowbox image
 FROM ${NODE_IMAGE}
